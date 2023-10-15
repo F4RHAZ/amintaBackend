@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from datetime import datetime
 
 ###########################################
 ##   FLASK CONFIGS AND INITIALIZATION    ##
@@ -147,10 +148,71 @@ def update_product(product_id):
 @app.route('/api/stocks' , methods=['POST'])
 def create_stock():
     data = request.json
+    #converting date string to datetime format
+    data['intake_date'] = datetime.strptime(data['intake_date'], "%Y-%m-%dT%H:%M:%S")
+    data['expiry_date'] = datetime.strptime(data['expiry_date'], "%Y-%m-%d")
+
     stock = Stock(**data)
     db.session.add(stock)
     db.session.commit()
     return jsonify(message = 'Stock entry successfully created')
+
+
+#get a list of all stock entries
+@app.route('/api/stocks', methods=['GET'])
+def get_all_Stocks():
+    stocks = Stock.query.all()
+    stock_list = [{id: stock.id, 'product_id':  stock.product_id, 'quantity_added': stock.quantity_added,
+                  'intake_date': stock.intake_date, 'supplier_name': stock.supplier_name,
+                  'purchase_price': stock.purchase_price, 'expiry_date': stock.expiry_date,
+                  'large_packing': stock.large_packing, 'small_packing': stock.small_packing,
+                  'individual_pieces': stock.individual_pieces}
+                 for stock in stocks]
+    return jsonify(stocks=stock_list)
+
+
+#get detials of a specific stock entry
+@app.route('/api/stocks/<int:stock_id>', methods=['GET'])
+def get_stock(stock_id):
+    stock = Stock.query.get(stock_id)
+    if stock:
+        return jsonify(stock={
+            'id': stock.id,
+            'product_id': stock.product_id,
+            'quantity_added': stock.quantity_added,
+            'intake_date': stock.intake_date,
+            'supplier_name': stock.supplier_name,
+            'purchase_price': stock.purchase_price,
+            'expiry_date': stock.expiry_date,
+            'large_packing': stock.large_packing,
+            'small_packing': stock.small_packing,
+            'individual_pieces': stock.individual_pieces
+        })
+    else:
+        return jsonify(message = 'Stock entry not found'), 404
+    
+
+# Update stock entry details
+@app.route('/api/stocks/<int:stock_id>', methods=['PUT'])
+def update_Stock(stock_id):
+    data = request.json
+    stock = Stock.query.get(stock_id)
+    if not stock:
+        return jsonify(message='Stock entry not found'), 404
+    
+     # Parse the date and time strings to datetime objects
+    if 'intake_date' in data:
+        data['intake_date'] = datetime.strptime(data['intake_date'], "%Y-%m-%dT%H:%M:%S")
+    if 'expiry_date' in data:
+        data['expiry_date'] = datetime.strptime(data['expiry_date'], "%Y-%m-%d")
+
+
+    for key, value in data.items():
+        setattr(stock, key, value)
+
+    db.session.commit()
+    return jsonify(message='Stock entry updated successfully')
+
 
 
 
