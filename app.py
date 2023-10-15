@@ -140,6 +140,19 @@ def update_product(product_id):
     return jsonify(message='Product updated successfully')
 
 
+# DELETE a product entry
+@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify(message='Product not found'), 404
+
+    db.session.delete(product)
+    db.session.commit()
+
+    return jsonify(message='Product deleted successfully') 
+
+
 #####################################
 #       STOCK CRUD ROUTES           #
 #####################################
@@ -213,9 +226,92 @@ def update_Stock(stock_id):
     db.session.commit()
     return jsonify(message='Stock entry updated successfully')
 
+#DELETE a stock entry
+@app.route('/api/stocks/<int:stock_id>', methods=['DELETE'])
+def delete_stock(stock_id):
+    stock = Stock.query.get(stock_id)
+    if not stock:
+        return jsonify(message='Stock entry not found') , 404
+
+    db.session.delete(stock)
+    db.session.commit()
+    return jsonify(message='Stock entry deleted successfully')
 
 
+##########################################
+#               SALE CRUD OPERATIONS     #
+##########################################
 
+#Create a new sale entry
+@app.route('/api/sales', methods=['POST'])
+def create_sale():
+    data = request.json
+
+    data['sale_date'] = datetime.strptime(data['sale_date'], "%Y-%m-%dT%H:%M:%S")
+
+    sale = Sale(**data)
+    db.session.add(sale)
+    db.session.commit()
+
+    return jsonify(message='Sale entry created successfully')
+
+#get a list of all sales entries
+@app.route('/api/sales/', methods=['GET'])
+def get_all_sales():
+    sales = Sale.query.all()
+    sale_list = [{'id': sale.id, 'product_id': sale.product_id, 'quantity_sold': sale.quantity_sold,
+                  'sale_date': sale.sale_date, 'total_price': sale.total_price, 'customer_name': sale.customer_name,
+                  'payment_method': sale.payment_method, 'notes': sale.notes}
+                for sale in sales]
+    return jsonify(sales=sale_list)
+
+# Get detials of a specific sale entry
+@app.route('/api/sales/<int:sale_id>', methods=['GET'])
+def get_sale(sale_id):
+    sale = Sale.query.get(sale_id)
+    if sale:
+        return jsonify(sale={
+            'id': sale.id,
+            'product_id': sale.product_id,
+            'quantity_sold': sale.quantity_sold,
+            'sale_date': sale.sale_date,
+            'total_price': sale.total_price,
+            'customer_name': sale.customer_name,
+            'payment_method': sale.payment_method,
+            'notes': sale.notes
+        })
+    else:
+        return jsonify(message='Sale entry not found'), 404
+    
+
+#update sale entry details
+@app.route("/api/sales/<int:sale_id>", methods=['PUT'])
+def update_sale(sale_id):
+    data = request.json
+    sale = Sale.query.get(sale_id)
+    if not sale:
+        return jsonify(message="sale entry not found"), 404
+    
+    if 'sale_date' in data:
+        data['sale_date'] = datetime.strptime(data['sale_date'], "%Y-%m-%dT%H:%M:%S")
+    
+    for key, value in data.items():
+        setattr(sale, key, value)
+
+    db.session.commit()
+    return jsonify(message='sale entry updates successfully')
+
+
+#Delete a sale entry
+@app.route('/api/sale/<int:sale_id>', methods=['DELETE'])
+def delete_sale(sale_id):
+    sale = Sale.query.get(sale_id)
+    if not sale:
+        return jsonify(message='Sale entry not found'), 404
+    
+    db.session.delete(sale)
+    db.session.commit()
+    return jsonify(message='Sale entry deleted successfully')
 
 
 @app.route('/api/hello')
