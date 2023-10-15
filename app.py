@@ -97,14 +97,69 @@ def create_product():
     return jsonify(message='Product created successfully')
 
 
-#
-@app.route()
+# Get a list of all products
+@app.route('/api/products', methods=['GET'])
+def get_all_products():
+    products = Product.query.all()
+    product_list = [{'id': product.id, 'product_name': product.product_name, 'description': product.description,
+                    'category': product.category, 'unit_price': product.unit_price, 'units_per_box': product.units_per_box}
+                   for product in products]
+    return jsonify(products=product_list)
+
+
+#Get details of a specific product
+@app.route('/api/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    product = Product.query.get(product_id)
+    if product:
+        return jsonify(product={
+            'id' : product.id,
+             'product_name': product.product_name,
+            'description': product.description,
+            'category': product.category,
+            'unit_price': product.unit_price,
+            'units_per_box': product.units_per_box
+        })
+    else:
+        return jsonify(message = "Product not found"), 404
+
+
+#Update product details
+@app.route('/api/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    data = request.json
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify(message='Product not found'), 404
+    
+    for key, value in data.items():
+        setattr(product, key, value)
+
+    db.session.commit()
+    return jsonify(message='Product updated successfully')
+
+
+#####################################
+#       STOCK CRUD ROUTES           #
+#####################################
+
+#create a new stock entry
+@app.route('/api/stocks' , methods=['POST'])
+def create_stock():
+    data = request.json
+    stock = Stock(**data)
+    db.session.add(stock)
+    db.session.commit()
+    return jsonify(message = 'Stock entry successfully created')
+
+
+
 
 
 @app.route('/api/hello')
 def hello():
     return jsonify(message = 'hellow Word')
 
-
+ 
 if __name__ == '__main__':
     app.run(debug=True)
